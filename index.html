@@ -1,0 +1,721 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code the Maze — Block Coding Challenge</title>
+<style>
+:root{--navy:#103d70;--blue:#0878df;--sky:#eaf6ff;--green:#148447;--purple:#8745d6;--orange:#f49a16;--ink:#18324d}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef7ff;color:var(--ink)}
+header{background:linear-gradient(100deg,#074b91,#087bd7);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-size:35px}
+.headtitle{font-size:clamp(23px,3vw,35px);font-weight:900}
+.subtitle{font-size:14px;margin-top:3px}
+.headright{margin-left:auto;display:flex;align-items:center;gap:12px}
+.pill{background:#073c76;border:1px solid #ffffff33;border-radius:14px;padding:10px 15px;font-weight:bold}
+.pill span{color:#ffdf45}
+main{display:grid;grid-template-columns:minmax(180px,240px) minmax(250px,1fr) minmax(300px,1.12fr);gap:12px;padding:12px;max-width:1600px;margin:auto}
+.panel{background:#fff;border:2px solid #b8dafa;border-radius:14px;overflow:hidden;box-shadow:0 3px 8px #173b5d12;min-width:0}
+.panel h2{font-size:20px;margin:0;padding:12px 14px;background:#d8ebff;color:#064c8c}
+.toolbox{padding:10px;display:flex;flex-direction:column;gap:10px}
+.category{border-radius:10px;padding:8px;background:#f0f7ff}
+.category h3{margin:0 0 7px;font-size:14px;color:#07559b}
+.block{border:0;color:#fff;font-weight:bold;border-radius:5px;padding:6px 5px;margin:3px 0;cursor:grab;display:flex;gap:5px;align-items:center;box-shadow:0 2px 0 #0002;user-select:none;font-size:9px;width:100%;text-align:left}
+.block .symbol{font-size:13px;min-width:14px;text-align:center}
+.move{background:#0783ee}.turn{background:#1675d6}.loop{background:#9148df}.condition{background:#22a447}.item{background:#f2940b}
+.block:active{cursor:grabbing;transform:translateY(1px)}
+.block:focus-visible,button:focus-visible{outline:3px solid #ffca28;outline-offset:2px}
+.workspace{padding:12px;min-height:470px;background:#fafdff}
+.workspacehead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.workspacehead strong{font-size:18px}
+.small{font-size:12px;color:#526b82}
+.codearea{border:2px dashed #b8d2e9;border-radius:12px;min-height:330px;padding:10px;background:#f5fbff;display:flex;flex-direction:column;gap:7px}
+.codehint{text-align:center;color:#7a91a7;font-size:13px;padding:20px 6px}
+.codeitem{display:flex;align-items:center;gap:5px;border-radius:5px;padding:5px 6px;color:white;font-weight:bold;min-height:24px;cursor:grab;box-shadow:0 1px 0 #0002;font-size:10px}
+.codeitem .num{background:#ffffff33;border-radius:4px;padding:2px 4px;font-size:9px}
+.loopnest{margin:3px 0 0 17px;padding:5px;border:1px dashed #ffffffaa;border-radius:5px;min-height:26px;background:#5f2ba5}
+.loopnest.empty{color:#fff;font-size:9px;font-weight:normal}
+.loopcount{border:0;border-radius:4px;padding:2px;font-weight:bold;margin:0 2px;width:38px;color:#24364b;font-size:10px}
+.codeitem .remove{margin-left:auto;background:#ffffff30;border:0;color:#fff;border-radius:4px;font-size:12px;padding:2px 5px;cursor:pointer}
+.controls{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+button{border:0;border-radius:9px;padding:11px 13px;font-weight:bold;cursor:pointer;font-size:14px}
+.run{background:#128647;color:#fff;flex:1}
+.step{background:#3d7fe0;color:white}
+.reset{background:#e6eef6;color:#24445f}
+.clear{background:#fce5e5;color:#9b2525}
+.gamecol{display:flex;flex-direction:column;gap:10px}
+.boardpanel{padding:10px;background:#e8f8e8;border:3px solid #34854b}
+.boardtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:8px}
+.boardtop strong{background:#145b36;color:white;padding:6px 10px;border-radius:8px}
+#maze{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:2px;width:100%;aspect-ratio:1/1;background:#d7e8be;padding:4px;border-radius:8px}
+.tile{display:flex;justify-content:center;align-items:center;min-width:0;aspect-ratio:1;border-radius:3px;font-size:clamp(11px,1.6vw,23px);font-weight:bold}
+.wall{background:linear-gradient(145deg,#6c8192,#43586d);border:1px solid #35485a;box-shadow:inset 0 2px #ffffff36}
+.floor{background:#f8e7ac;border:1px solid #dfcb8b}
+.starttile{background:#d9f3ff}
+.keytile{background:#fff1a7}
+.doortile{background:#b8f0c4}
+
+/* Arrow-only player */
+.player{position:relative;background:#d9f3ff!important;border:2px solid #0757a6!important;border-radius:5px!important;box-shadow:inset 0 0 0 1px #ffffffaa;z-index:1;color:#e21b2d!important;overflow:visible}
+.player .direction-arrow{display:inline-block;font-size:clamp(20px,3vw,38px);line-height:1;font-weight:900;color:#e21b2d;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff,0 1px 2px #3338;transform-origin:center;transition:transform .12s ease}
+.info{padding:12px;border-radius:12px;background:#dcefff;border:1px solid #b4dcff}
+.info h3{margin:0 0 5px;color:#07539b}
+.info p{margin:0;line-height:1.45;font-size:14px}
+.tip{padding:11px 12px;background:#e2f7e9;border:1px solid #b7e5c4;border-radius:12px;font-size:14px;line-height:1.4}
+.tip strong{color:#126d3d}
+.status{min-height:42px;padding:10px 12px;border-radius:10px;background:#fff4d6;border:1px solid #f1d27a;font-weight:bold;font-size:14px;line-height:1.35}
+.progressbar{display:flex;gap:5px;flex-wrap:wrap;padding:10px 14px;background:#073d76;color:white;justify-content:center}
+.leveldot{border-radius:50%;width:28px;height:28px;background:#19568e;color:white;font-weight:bold;border:2px solid #ffffff22;cursor:pointer;padding:0;font-size:12px}
+.leveldot.current{background:#ffd43b;color:#17334e;border-color:white}
+.leveldot.done{background:#16884b}
+footer{text-align:center;padding:10px;color:#55728b;font-size:12px}
+.testlevel{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin:8px auto 0;font-size:12px}
+.testlevel input{width:92px;min-width:0;border:1px solid #9dbbd5;border-radius:5px;padding:5px 7px;font-size:12px;color:#18324d}
+.testlevel button{padding:5px 9px;border-radius:5px;background:#d8eaff;color:#164b7d;font-size:12px}
+#levelTestMsg{min-width:100px}
+.overlay{position:fixed;inset:0;background:#092847b8;display:none;align-items:center;justify-content:center;padding:20px;z-index:5}
+.modal{background:white;border-radius:18px;padding:26px;max-width:460px;width:100%;text-align:center;box-shadow:0 12px 40px #0004}
+.modal h2{margin-top:0;color:#087444}
+.modal p{line-height:1.5}
+.modal button{background:#087bdf;color:white;margin-top:8px}
+@media(max-width:1000px){
+ main{grid-template-columns:200px minmax(240px,1fr)}
+ .gamecol{grid-column:1/-1;display:grid;grid-template-columns:minmax(250px,1fr) minmax(220px,1fr)}
+ .boardpanel{grid-row:span 2}
+}
+@media(max-width:650px){
+ main{grid-template-columns:1fr}
+ .gamecol{grid-column:auto;display:flex}
+ .headright{margin-left:0}
+ .workspace{min-height:0}
+ .codearea{min-height:180px}
+ .tile{font-size:15px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🧩</div>
+  <div>
+    <div class="headtitle">Code the Maze</div>
+    <div class="subtitle">Drag coding blocks into your program. Help the explorer find the key and reach the exit!</div>
+  </div>
+  <div class="headright">
+    <div class="pill">LEVEL <span id="levelTop">1</span> / 20</div>
+    <div class="pill">⭐ <span id="stars">0</span> / 60</div>
+    <button id="homeBtn" class="step" title="Return to level 1">⌂ Home</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>🧱 Coding Blocks</h2>
+    <div class="toolbox">
+      <div class="category">
+        <h3>MOVEMENT</h3>
+        <button class="block move" draggable="true" data-type="forward"><span class="symbol">⬆</span> Move Forward</button>
+        <button class="block turn" draggable="true" data-type="left"><span class="symbol">↶</span> Turn Left</button>
+        <button class="block turn" draggable="true" data-type="right"><span class="symbol">↷</span> Turn Right</button>
+      </div>
+      <div class="category">
+        <h3>LOOPS</h3>
+        <button class="block loop" draggable="true" data-type="loop"><span class="symbol">🔁</span> Repeat Loop</button>
+        <div class="small">Add a loop, then drag a Move Forward block into its dotted area. Choose 1–10 repeats.</div>
+      </div>
+      <div class="category">
+        <h3>CONDITIONALS</h3>
+        <button class="block condition" draggable="true" data-type="ifforward"><span class="symbol">❓</span> If path ahead, move</button>
+      </div>
+      <div class="category">
+        <h3>ITEMS</h3>
+        <button class="block item" draggable="true" data-type="key"><span class="symbol">🔑</span> Collect Key</button>
+        <button class="block item" draggable="true" data-type="door"><span class="symbol">🚪</span> Open Door</button>
+      </div>
+      <div class="small">Tip: Click a block to add it, or drag it into “Your Code.” Drag blocks up or down to change their order.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>💻 Your Code</h2>
+    <div class="workspace">
+      <div class="workspacehead"><strong>▶ When Run</strong><span class="small" id="blockCount">0 blocks</span></div>
+      <div id="codearea" class="codearea"><div class="codehint">Add blocks here to build your program.</div></div>
+      <div class="controls">
+        <button class="run" id="runBtn">▶ Run Code</button>
+        <button class="step" id="stepBtn">▸ Step</button>
+        <button class="reset" id="resetBtn">↻ Reset</button>
+        <button class="clear" id="clearBtn">Clear</button>
+      </div>
+      <div class="status" id="status" style="margin-top:10px" role="status" aria-live="polite">Ready! Add movement blocks, then run your code.</div>
+    </div>
+  </section>
+
+  <section class="gamecol">
+    <div class="panel boardpanel">
+      <div class="boardtop"><strong id="boardLevel">LEVEL 1</strong><span id="itemStatus">🔑 Find the key!</span></div>
+      <div id="maze" aria-label="Maze game board"></div>
+    </div>
+    <div class="info">
+      <h3>🎯 Your Mission</h3>
+      <p id="mission">Guide the explorer to the key, then reach the green exit. Plan your moves before running your code!</p>
+    </div>
+    <div class="tip"><strong>💡 Coding Tip:</strong> <span id="tipText">A sequence is a set of instructions in the correct order. Try one move at a time!</span></div>
+  </section>
+</main>
+
+<div class="progressbar" id="progress"></div>
+
+<footer>
+  Made for classroom Chromebooks • Think carefully, test your code, and debug when something goes wrong.
+  <div class="testlevel" aria-label="Teacher testing level selector">
+    <label for="levelTest">Teacher test level:</label>
+    <input id="levelTest" type="text" placeholder="level1" autocomplete="off" spellcheck="false" aria-label="Type level1 through level20">
+    <button id="goLevelTest" type="button">Go</button>
+    <span id="levelTestMsg" role="status" aria-live="polite"></span>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Level Complete!</h2>
+    <p id="modalText"></p>
+    <button id="nextBtn">Next Level →</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const N=11, DIRS=[[0,1],[1,0],[0,-1],[-1,0]], DIRN=['East','South','West','North'];
+const levelTop=document.getElementById('levelTop'), starsEl=document.getElementById('stars'), mazeEl=document.getElementById('maze');
+const codearea=document.getElementById('codearea'), statusEl=document.getElementById('status'), progressEl=document.getElementById('progress');
+let level=1, code=[], player={r:1,c:1,d:0}, keyPos={r:1,c:1}, doorPos={r:9,c:9}, walls=new Set(), hasKey=false, won=false, earned=new Set(), running=false, queue=[], stepQueue=[], stepCursor=0, stepStarted=false, dragIndex=null, steps=0;
+
+const tips=[
+'Start with a simple sequence. Commands run from top to bottom.',
+'Turns change which direction the explorer is facing.',
+'Look at the walls before choosing your next move.',
+'You can drag blocks into a different order.',
+'A loop repeats an action. Use fewer blocks when you can!',
+'Try a Repeat block when you need to move several times.',
+'If Path Ahead checks whether the next tile is open.',
+'Debugging means finding a mistake and fixing your code.',
+'Stand on the key and use the Collect Key block before heading to the exit.',
+'Combine turns and movement to travel around corners.',
+'Loops can make long programs shorter.',
+'Plan a route in small sections before coding it.',
+'Watch your direction: forward depends on which way you face.',
+'The same goal can often be reached with different programs.',
+'Use a conditional when a wall might be in front of you.',
+'Try to solve the maze with fewer instructions.',
+'Think ahead: where will the explorer be after each turn?',
+'You may need to collect the key and then change direction.',
+'Mix movement, loops, and conditionals to solve the maze.',
+'Final challenge! Plan carefully and use everything you learned.'
+];
+
+const labels={
+ forward:['⬆','Move Forward','move'],
+ left:['↶','Turn Left','turn'],
+ right:['↷','Turn Right','turn'],
+ loop:['🔁','Repeat Loop','loop'],
+ ifforward:['❓','If path ahead, move','condition'],
+ key:['🔑','Collect Key','item'],
+ door:['🚪','Open Door','item']
+};
+
+function rand(seed){
+ let x=Math.sin(seed*127.1+311.7)*43758.5453;
+ return x-Math.floor(x);
+}
+
+function makeMaze(lvl){
+ walls=new Set();
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++)walls.add(r+','+c);
+
+ const cells=5, visited=new Set(), stack=[[0,0]];
+ const logical=(r,c)=>r+','+c;
+ visited.add(logical(0,0));
+ let seed=lvl*13+4;
+
+ while(stack.length){
+  const [r,c]=stack[stack.length-1];
+  let opts=[[r-1,c,0],[r,c+1,1],[r+1,c,2],[r,c-1,3]]
+   .filter(([rr,cc])=>rr>=0&&rr<cells&&cc>=0&&cc<cells&&!visited.has(logical(rr,cc)));
+
+  if(!opts.length){stack.pop();continue}
+  opts.sort((a,b)=>rand(seed+a[0]*19+a[1]*7)-rand(seed+b[0]*19+b[1]*7));
+
+  const [rr,cc]=opts[0];
+  visited.add(logical(rr,cc));
+  stack.push([rr,cc]);
+
+  const ar=1+r*2, ac=1+c*2, br=1+rr*2, bc=1+cc*2;
+  walls.delete(ar+','+ac);
+  walls.delete(br+','+bc);
+  walls.delete(((ar+br)/2)+','+((ac+bc)/2));
+ }
+
+ const start={r:1,c:1}, end={r:9,c:9};
+ walls.delete('1,1');
+ walls.delete('9,9');
+
+ // Open the first corridor so students can test movement and turns.
+ walls.delete('1,2');
+ walls.delete('1,3');
+
+ const path=findPath(start,end);
+ const keyIndex=Math.max(2,Math.min(path.length-3,Math.floor(path.length*(0.28+Math.min(lvl,20)*0.012))));
+ keyPos={...path[keyIndex]};
+ doorPos=end;
+ player={...start,d:1};
+ hasKey=false;
+ won=false;
+ steps=0;
+ drawMaze();
+}
+
+function findPath(start,end){
+ const q=[start], prev=new Map([[start.r+','+start.c,null]]), dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ while(q.length){
+  const p=q.shift();
+  if(p.r===end.r&&p.c===end.c)break;
+  for(const [dr,dc] of dirs){
+   const r=p.r+dr,c=p.c+dc,k=r+','+c;
+   if(r<0||c<0||r>=N||c>=N||walls.has(k)||prev.has(k))continue;
+   prev.set(k,p);
+   q.push({r,c});
+  }
+ }
+ let cur=end,k=cur.r+','+cur.c,path=[];
+ if(!prev.has(k))return [start,end];
+ while(cur){
+  path.push(cur);
+  cur=prev.get(cur.r+','+cur.c);
+ }
+ return path.reverse();
+}
+
+function openCell(r,c){
+ return r>=0&&c>=0&&r<N&&c<N&&!walls.has(r+','+c);
+}
+
+function drawMaze(){
+ mazeEl.innerHTML='';
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+  const el=document.createElement('div');
+  el.className='tile '+(walls.has(r+','+c)?'wall':'floor');
+
+  if(r===1&&c===1)el.classList.add('starttile');
+  if(r===keyPos.r&&c===keyPos.c&&!hasKey){el.classList.add('keytile');el.textContent='🔑'}
+  if(r===doorPos.r&&c===doorPos.c){el.classList.add('doortile');el.textContent=won?'🏆':'🚪'}
+
+  if(r===player.r&&c===player.c){
+   el.className+=' player';
+   const rotations=[0,90,180,270];
+   el.innerHTML='<span class="direction-arrow" style="transform:rotate('+rotations[player.d]+'deg)" aria-label="Arrow facing '+DIRN[player.d]+'">➤</span>';
+   el.title='Arrow facing '+DIRN[player.d]+' — Move Forward goes this way';
+  }
+  mazeEl.appendChild(el);
+ }
+ document.getElementById('itemStatus').textContent=hasKey?'✅ Key collected':'🔑 Find the key!';
+}
+
+function renderCode(){
+ codearea.innerHTML='';
+ if(!code.length)codearea.innerHTML='<div class="codehint">Add blocks here to build your program.</div>';
+
+ code.forEach((item,i)=>{
+  const meta=labels[item.type],el=document.createElement('div');
+  el.className='codeitem '+meta[2];
+  el.draggable=true;
+  el.dataset.index=i;
+
+  if(item.type==='loop'){
+   el.innerHTML='<span class="num">'+(i+1)+'</span><span>🔁</span><span>Repeat</span><label> <select class="loopcount" aria-label="Loop repeat count">'+Array.from({length:10},(_,j)=>'<option value="'+(j+1)+'" '+((item.count||2)===j+1?'selected':'')+'>'+(j+1)+'</option>').join('')+'</select> times</label><button class="remove" title="Remove loop" aria-label="Remove loop">×</button><div class="loopnest '+(item.child?'':'empty')+'" data-loop="'+i+'">'+(item.child?'<div class="codeitem move" style="margin:0;cursor:default"><span>⬆</span><span>Move Forward</span><button class="remove nestedremove" title="Remove move from loop">×</button></div>':'Drop a Move Forward block here')+'</div>';
+
+   el.querySelector('.loopcount').addEventListener('change',e=>{
+    item.count=Math.max(1,Math.min(10,Number(e.target.value)||1));
+   });
+
+   el.querySelector('.nestedremove')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    item.child=null;
+    renderCode();
+   });
+
+   const nest=el.querySelector('.loopnest');
+   nest.addEventListener('dragover',e=>{
+    e.preventDefault();
+    nest.style.background='#7540bd';
+   });
+   nest.addEventListener('dragleave',()=>nest.style.background='#5f2ba5');
+   nest.addEventListener('drop',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    nest.style.background='#5f2ba5';
+    const data=e.dataTransfer.getData('text/plain');
+    if(data==='new:forward'){
+     item.child={type:'forward'};
+     renderCode();
+    }else if(data.startsWith('code:')){
+     const from=Number(data.slice(5));
+     if(code[from]?.type==='forward'){
+      item.child={type:'forward'};
+      code.splice(from,1);
+      renderCode();
+     }
+    }
+   });
+  }else{
+   el.innerHTML='<span class="num">'+(i+1)+'</span><span>'+meta[0]+'</span><span>'+meta[1]+'</span><button class="remove" title="Remove block" aria-label="Remove '+meta[1]+'">×</button>';
+  }
+
+  el.querySelector('.remove:not(.nestedremove)').addEventListener('click',e=>{
+   e.stopPropagation();
+   code.splice(i,1);
+   renderCode();
+  });
+
+  el.addEventListener('dragstart',e=>{
+   dragIndex=i;
+   e.dataTransfer.setData('text/plain','code:'+i);
+   e.dataTransfer.effectAllowed='move';
+  });
+  el.addEventListener('dragover',e=>{
+   e.preventDefault();
+   el.style.outline='2px dashed #087bdf';
+  });
+  el.addEventListener('dragleave',()=>el.style.outline='');
+  el.addEventListener('drop',e=>{
+   if(e.target.closest('.loopnest'))return;
+   e.preventDefault();
+   e.stopPropagation();
+   el.style.outline='';
+   const from=dragIndex;
+   if(from!==null&&from!==i){
+    const moved=code.splice(from,1)[0];
+    code.splice(i,0,moved);
+    dragIndex=null;
+    renderCode();
+   }
+  });
+  codearea.appendChild(el);
+ });
+
+ document.getElementById('blockCount').textContent=code.length+' top-level block'+(code.length===1?'':'s');
+}
+
+document.querySelectorAll('.toolbox .block').forEach(btn=>{
+ btn.addEventListener('click',()=>addBlock(btn.dataset.type));
+ btn.addEventListener('dragstart',e=>{
+  e.dataTransfer.setData('text/plain','new:'+btn.dataset.type);
+  e.dataTransfer.effectAllowed='copy';
+ });
+});
+
+function addBlock(type){
+ if(type==='loop')code.push({type:'loop',count:2,child:null});
+ else code.push({type});
+ renderCode();
+ statusEl.textContent=type==='loop'
+  ?'Loop added. Drag a Move Forward block into its dotted area, then choose 1–10 repeats.'
+  :'Added: '+labels[type][1]+'. Keep building your program!';
+}
+
+codearea.addEventListener('dragover',e=>{
+ e.preventDefault();
+ codearea.style.background='#e5f4ff';
+});
+codearea.addEventListener('dragleave',()=>codearea.style.background='#f5fbff');
+codearea.addEventListener('drop',e=>{
+ e.preventDefault();
+ codearea.style.background='#f5fbff';
+ if(e.target.closest('.loopnest'))return;
+ const data=e.dataTransfer.getData('text/plain');
+ if(data.startsWith('new:'))addBlock(data.slice(4));
+ else if(data.startsWith('code:')){
+  const from=Number(data.slice(5));
+  if(!Number.isNaN(from)&&code[from]){
+   const moved=code.splice(from,1)[0];
+   code.push(moved);
+   renderCode();
+   dragIndex=null;
+  }
+ }
+});
+
+function resetPlayer(){
+ player={r:1,c:1,d:1};
+ hasKey=false;
+ won=false;
+ steps=0;
+ drawMaze();
+}
+
+function faceAhead(){
+ const [dr,dc]=DIRS[player.d];
+ return openCell(player.r+dr,player.c+dc);
+}
+
+function executeOne(cmd){
+ if(won)return {ok:false,msg:'You already finished this level! Choose Next Level to continue.'};
+ const t=cmd.type;
+
+ if(t==='left'){
+  player.d=(player.d+3)%4;
+  steps++;
+  return {ok:true,msg:'Turned left.'};
+ }
+ if(t==='right'){
+  player.d=(player.d+1)%4;
+  steps++;
+  return {ok:true,msg:'Turned right.'};
+ }
+
+ if(t==='forward'||t==='ifforward'){
+  if(t==='ifforward'&&!faceAhead()){
+   steps++;
+   return {ok:true,msg:'Path blocked, so the conditional skipped the move.'};
+  }
+  if(!faceAhead())return {ok:false,msg:'Oops! A wall is in the way. Reset and try a different sequence.'};
+
+  const [dr,dc]=DIRS[player.d];
+  player.r+=dr;
+  player.c+=dc;
+  steps++;
+
+  if(player.r===doorPos.r&&player.c===doorPos.c){
+   if(hasKey){
+    won=true;
+    return {ok:true,msg:'You reached the exit with the key!'};
+   }else{
+    return {ok:false,msg:'You found the exit, but you still need the key!'};
+   }
+  }
+  return {ok:true,msg:'Moved one tile.'};
+ }
+
+ if(t==='key'){
+  if(hasKey)return {ok:true,msg:'You already collected the key.'};
+  if(player.r===keyPos.r&&player.c===keyPos.c){
+   hasKey=true;
+   steps++;
+   return {ok:true,msg:'Key collected! Now find the exit.'};
+  }
+  return {ok:false,msg:'You must stand on the key tile to use Collect Key. Walking over the key does not collect it.'};
+ }
+
+ if(t==='door'){
+  if(player.r===doorPos.r&&player.c===doorPos.c&&hasKey){
+   won=true;
+   steps++;
+   return {ok:true,msg:'Door unlocked! Level complete.'};
+  }
+  return {ok:false,msg:hasKey?'Move onto the exit before opening the door.':'You need to collect the key first.'};
+ }
+ return {ok:true,msg:''};
+}
+
+function expandCommands(list){
+ const out=[];
+ for(const cmd of list){
+  if(cmd.type==='loop'){
+   if(!cmd.child)continue;
+   const n=Math.max(1,Math.min(10,Number(cmd.count)||1));
+   for(let j=0;j<n;j++)out.push({...cmd.child,fromLoop:true});
+  }else{
+   out.push(cmd);
+  }
+ }
+ return out;
+}
+
+function runProgram(){
+ if(running)return;
+ if(!code.length){
+  statusEl.textContent='Add at least one coding block first.';
+  return;
+ }
+ if(code.some(x=>x.type==='loop'&&!x.child)){
+  statusEl.textContent='Your loop needs a Move Forward block inside it before you can run the program.';
+  return;
+ }
+
+ stepStarted=false;
+ resetPlayer();
+ queue=expandCommands(code);
+ running=true;
+ let i=0;
+
+ function tick(){
+  if(i>=queue.length||!running){
+   running=false;
+   if(!won&&i>=queue.length)statusEl.textContent='Program finished. '+steps+' actions used. If you did not reach the exit, adjust your code and try again.';
+   return;
+  }
+
+  const res=executeOne(queue[i++]);
+  drawMaze();
+  statusEl.textContent=res.msg;
+
+  if(won){
+   running=false;
+   completeLevel();
+   return;
+  }
+  if(!res.ok){
+   running=false;
+   return;
+  }
+  if(i>=queue.length){
+   running=false;
+   statusEl.textContent='Program finished. '+steps+' actions used. If you did not reach the exit, adjust your code and try again.';
+   return;
+  }
+  setTimeout(tick,Math.max(180,540-level*15));
+ }
+ tick();
+}
+
+function completeLevel(){
+ if(!earned.has(level))earned.add(level);
+ updateProgress();
+ const stars=Math.max(1,3-Math.floor(Math.max(0,steps-(level*2+5))/4));
+ document.getElementById('modalTitle').textContent=level===20?'🏆 Maze Master!':'🎉 Level '+level+' Complete!';
+ document.getElementById('modalText').textContent='Great coding! You reached the exit in '+steps+' actions and earned '+stars+' star'+(stars===1?'':'s')+'. '+(level===20?'You completed all 20 levels!':'Ready for the next maze?');
+ document.getElementById('nextBtn').textContent=level===20?'Play Again':'Next Level →';
+ document.getElementById('overlay').style.display='flex';
+ statusEl.textContent='Level complete! Great job debugging and planning your code.';
+}
+
+function updateProgress(){
+ levelTop.textContent=level;
+ document.getElementById('boardLevel').textContent='LEVEL '+level;
+ starsEl.textContent=earned.size;
+ progressEl.innerHTML='';
+
+ for(let i=1;i<=20;i++){
+  const b=document.createElement('button');
+  b.className='leveldot'+(i===level?' current':'')+(earned.has(i)?' done':'');
+  b.textContent=i;
+  b.title='Go to level '+i;
+  b.addEventListener('click',()=>loadLevel(i));
+  progressEl.appendChild(b);
+ }
+
+ document.getElementById('mission').textContent=
+  level<=4?'Guide the explorer through the maze, collect the key, and reach the exit.':
+  level<=9?'Plan your turns carefully. Collect the key and then navigate to the exit.':
+  level<=14?'Use loops and conditionals to make your program shorter and smarter.':
+  'Challenge yourself to solve this maze with an efficient program.';
+ document.getElementById('tipText').textContent=tips[level-1];
+}
+
+function loadLevel(n){
+ running=false;
+ stepStarted=false;
+ level=Math.max(1,Math.min(20,n));
+ code=[];
+ renderCode();
+ document.getElementById('overlay').style.display='none';
+ makeMaze(level);
+ updateProgress();
+ statusEl.textContent='Level '+level+' is ready. Add blocks, then run your program.';
+}
+
+function stepProgram(){
+ if(running)return;
+ if(!code.length){
+  statusEl.textContent='Add at least one coding block first.';
+  return;
+ }
+ if(code.some(x=>x.type==='loop'&&!x.child)){
+  statusEl.textContent='Your loop needs a Move Forward block inside it before you can run the program.';
+  return;
+ }
+
+ if(!stepStarted){
+  resetPlayer();
+  stepQueue=expandCommands(code);
+  stepCursor=0;
+  stepStarted=true;
+ }
+
+ if(stepCursor>=stepQueue.length){
+  statusEl.textContent='Program ended. Reset to try again, or change your code.';
+  stepStarted=false;
+  return;
+ }
+
+ const res=executeOne(stepQueue[stepCursor++]);
+ drawMaze();
+ statusEl.textContent=res.msg+' (Step '+stepCursor+' of '+stepQueue.length+')';
+
+ if(won){
+  stepStarted=false;
+  completeLevel();
+  return;
+ }
+ if(!res.ok){
+  stepStarted=false;
+  return;
+ }
+ if(stepCursor>=stepQueue.length){
+  statusEl.textContent+=' Program ended. Reset to try again or adjust your code.';
+  stepStarted=false;
+ }
+}
+
+document.getElementById('runBtn').addEventListener('click',runProgram);
+document.getElementById('stepBtn').addEventListener('click',stepProgram);
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+ running=false;
+ stepStarted=false;
+ resetPlayer();
+ statusEl.textContent='Explorer reset to the start. Your code is still here.';
+});
+
+document.getElementById('clearBtn').addEventListener('click',()=>{
+ running=false;
+ stepStarted=false;
+ code=[];
+ renderCode();
+ resetPlayer();
+ statusEl.textContent='Code cleared. Start a new program.';
+});
+
+document.getElementById('homeBtn').addEventListener('click',()=>loadLevel(1));
+document.getElementById('nextBtn').addEventListener('click',()=>loadLevel(level===20?1:level+1));
+
+const levelTest=document.getElementById('levelTest'),levelTestMsg=document.getElementById('levelTestMsg');
+
+function goToTestLevel(){
+ const match=levelTest.value.trim().toLowerCase().match(/^level\s*(\d{1,2})$/);
+ if(!match){
+  levelTestMsg.textContent='Type level1–level20.';
+  return;
+ }
+ const target=Number(match[1]);
+ if(target<1||target>20){
+  levelTestMsg.textContent='Choose level1–level20.';
+  return;
+ }
+ loadLevel(target);
+ levelTestMsg.textContent='Opened level '+target+'.';
+}
+
+document.getElementById('goLevelTest').addEventListener('click',goToTestLevel);
+levelTest.addEventListener('keydown',e=>{
+ if(e.key==='Enter')goToTestLevel();
+});
+
+makeMaze(1);
+renderCode();
+updateProgress();
+})();
+</script>
+</body>
+</html>
